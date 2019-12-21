@@ -9,6 +9,8 @@ package frc.robot;
 
 import com.ctre.phoenix.CANifier;
 import com.kauailabs.navx.frc.AHRS;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
@@ -18,10 +20,11 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.I2C.Port;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+
+
 public class Robot extends TimedRobot {
 
   PowerDistributionPanel pdp;
-  CANifier encoders;
   AHRS navx;
 
   Module[] modules;
@@ -31,26 +34,25 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     pdp = new PowerDistributionPanel(20);
-    encoders = new CANifier(21);
     navx = new AHRS(Port.kOnboard);
 
     modules = new Module[4];
     
     modules[0] = new Module("FL",
-        new Motor("FL+", new Spark(0), ()->pdp.getCurrent(0)),
-        new Motor("FL-", new Spark(1), ()->pdp.getCurrent(1)));
+        new Motor("FL+", new CANSparkMax(16, MotorType.kBrushless), ()->pdp.getCurrent(0)),
+        new Motor("FL-", new CANSparkMax(1, MotorType.kBrushless), ()->pdp.getCurrent(1)));
 
     modules[1] = new Module("BL",
-        new Motor("BL+", new Spark(2), ()->pdp.getCurrent(2)),
-        new Motor("BL-", new Spark(3), ()->pdp.getCurrent(3)));
+        new Motor("BL+", new CANSparkMax(2, MotorType.kBrushless), ()->pdp.getCurrent(2)),
+        new Motor("BL-", new CANSparkMax(3, MotorType.kBrushless), ()->pdp.getCurrent(3)));
 
     modules[2] = new Module("BR",
-        new Motor("BR+", new Spark(4), ()->pdp.getCurrent(12)),
-        new Motor("BR-", new Spark(5), ()->pdp.getCurrent(13)));
+        new Motor("BR+", new CANSparkMax(12, MotorType.kBrushless), ()->pdp.getCurrent(12)),
+        new Motor("BR-", new CANSparkMax(13, MotorType.kBrushless), ()->pdp.getCurrent(13)));
 
     modules[3] = new Module("FR",
-        new Motor("FR+", new Spark(6), ()->pdp.getCurrent(14)),
-        new Motor("FR-", new Spark(7), ()->pdp.getCurrent(15)));
+        new Motor("FR+", new CANSparkMax(14, MotorType.kBrushless), ()->pdp.getCurrent(14)),
+        new Motor("FR-", new CANSparkMax(15, MotorType.kBrushless), ()->pdp.getCurrent(15)));
 
     entryYaw = SmartDashboard.getEntry("Yaw");
     entryYaw.setDouble(0);
