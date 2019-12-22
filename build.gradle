@@ -52,7 +52,7 @@ dependencies {
     compile wpi.deps.vendor.java()
     nativeZip wpi.deps.vendor.jni(wpi.platforms.roborio)
     nativeDesktopZip wpi.deps.vendor.jni(wpi.platforms.desktop)
-    implementation project(':SwerveLibrary')
+    compile project(':SwerveLibrary')
     testCompile 'junit:junit:4.12'
 }
 
