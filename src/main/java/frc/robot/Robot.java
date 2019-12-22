@@ -20,6 +20,7 @@ import frc.team88.swerve.swervemodule.SwerveModule;
 import frc.team88.swerve.swervemodule.motorsensor.PIDNeo;
 import frc.team88.swerve.swervemodule.motorsensor.PIDTransmission;
 import frc.team88.swerve.swervemodule.motorsensor.differential.DifferentialMechanism;
+import frc.team88.swerve.util.WrappedAngle;
 import frc.team88.swerve.util.constants.Constants;
 import frc.team88.swerve.util.constants.PIDPreferenceConstants;
 
@@ -32,20 +33,20 @@ public class Robot extends TimedRobot {
   private PIDPreferenceConstants azimuthPositionPIDConstants;
 
   private final static double azimuthGearRatio = 27.296 / 360.;
-  private final static double wheelGearRatio = 8.31 / ((1./3.) * Math.PI);
+  private final static double wheelGearRatio = 8.31 / ((1. / 3.) * Math.PI);
 
   private NetworkTableEntry enableMotorVelocityControl;
-  private NetworkTableEntry enableWheelVelocityControl;
+  private NetworkTableEntry enableWheelSpeedControl;
   private NetworkTableEntry enableAzimuthVelocityControl;
   private NetworkTableEntry enableAzimuthPositionControl;
 
   private HashMap<String, NetworkTableEntry> entriesSensorMotorVelocity;
   private HashMap<String, NetworkTableEntry> entriesSetMotorVelocity;
 
-  private HashMap<String, NetworkTableEntry> entriesSensorWheelVelocity;
+  private HashMap<String, NetworkTableEntry> entriesSensorWheelSpeed;
   private HashMap<String, NetworkTableEntry> entriesSensorAzimuthVelocity;
   private HashMap<String, NetworkTableEntry> entriesSensorAzimuthPosition;
-  private HashMap<String, NetworkTableEntry> entriesSetWheelVelocity;
+  private HashMap<String, NetworkTableEntry> entriesSetWheelSpeed;
   private HashMap<String, NetworkTableEntry> entriesSetAzimuthVelocity;
   private HashMap<String, NetworkTableEntry> entriesSetAzimuthPosition;
 
@@ -114,8 +115,8 @@ public class Robot extends TimedRobot {
     // Create the SmartDashboard entries for control modes
     enableMotorVelocityControl = SmartDashboard.getEntry("E M V");
     enableMotorVelocityControl.setBoolean(false);
-    enableWheelVelocityControl = SmartDashboard.getEntry("E W V");
-    enableWheelVelocityControl.setBoolean(false);
+    enableWheelSpeedControl = SmartDashboard.getEntry("E W V");
+    enableWheelSpeedControl.setBoolean(false);
     enableAzimuthVelocityControl = SmartDashboard.getEntry("E A V");
     enableAzimuthVelocityControl.setBoolean(false);
     enableAzimuthPositionControl = SmartDashboard.getEntry("E A P");
@@ -132,21 +133,21 @@ public class Robot extends TimedRobot {
     }
 
     // Create the SmartDashboard entries for modules
-    entriesSensorWheelVelocity = new HashMap<>();
+    entriesSensorWheelSpeed = new HashMap<>();
     entriesSensorAzimuthVelocity = new HashMap<>();
     entriesSensorAzimuthPosition = new HashMap<>();
-    entriesSetWheelVelocity = new HashMap<>();
+    entriesSetWheelSpeed = new HashMap<>();
     entriesSetAzimuthVelocity = new HashMap<>();
     entriesSetAzimuthPosition = new HashMap<>();
     for (Map.Entry<String, SwerveModule> entry : modules.entrySet()) {
-      entriesSensorWheelVelocity.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " R W Vel"));
-      entriesSensorWheelVelocity.get(entry.getKey()).setDouble(0);
+      entriesSensorWheelSpeed.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " R W Vel"));
+      entriesSensorWheelSpeed.get(entry.getKey()).setDouble(0);
       entriesSensorAzimuthVelocity.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " R A Vel"));
       entriesSensorAzimuthVelocity.get(entry.getKey()).setDouble(0);
       entriesSensorAzimuthPosition.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " R A Pos"));
       entriesSensorAzimuthPosition.get(entry.getKey()).setDouble(0);
-      entriesSetWheelVelocity.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " S W Vel"));
-      entriesSetWheelVelocity.get(entry.getKey()).setDouble(0);
+      entriesSetWheelSpeed.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " S W Vel"));
+      entriesSetWheelSpeed.get(entry.getKey()).setDouble(0);
       entriesSetAzimuthVelocity.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " S A Vel"));
       entriesSetAzimuthVelocity.get(entry.getKey()).setDouble(0);
       entriesSetAzimuthPosition.put(entry.getKey(), SmartDashboard.getEntry(entry.getKey() + " S A Pos"));
@@ -159,18 +160,18 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     Constants.update();
-    
+
     for (Map.Entry<String, NetworkTableEntry> entry : entriesSensorMotorVelocity.entrySet()) {
       entry.getValue().setDouble(neos.get(entry.getKey()).getVelocity());
     }
-    for (Map.Entry<String, NetworkTableEntry> entry : entriesSensorWheelVelocity.entrySet()) {
-      entry.getValue().setDouble(modules.get(entry.getKey()).getWheelVelocity());
+    for (Map.Entry<String, NetworkTableEntry> entry : entriesSensorWheelSpeed.entrySet()) {
+      entry.getValue().setDouble(modules.get(entry.getKey()).getWheelSpeed());
     }
     for (Map.Entry<String, NetworkTableEntry> entry : entriesSensorAzimuthVelocity.entrySet()) {
       entry.getValue().setDouble(modules.get(entry.getKey()).getAzimuthVelocity());
     }
     for (Map.Entry<String, NetworkTableEntry> entry : entriesSensorAzimuthPosition.entrySet()) {
-      entry.getValue().setDouble(modules.get(entry.getKey()).getAzimuthPosition());
+      entry.getValue().setDouble(modules.get(entry.getKey()).getAzimuthPosition().getAngle());
     }
   }
 
@@ -188,11 +189,11 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    modules.get("FL").setWheelVelocity(gamepad.getRawAxis(2)*6.);
+    modules.get("FL").setWheelSpeed(gamepad.getRawAxis(2) * 6.);
     if (gamepad.getMagnitude() > 0.9) {
       angleTarget = -gamepad.getDirectionDegrees();
     }
-    modules.get("FL").setAzimuthPosition(angleTarget);
+    modules.get("FL").setAzimuthPosition(new WrappedAngle(angleTarget));
   }
 
   @Override
@@ -203,22 +204,22 @@ public class Robot extends TimedRobot {
   public void testPeriodic() {
     if (enableMotorVelocityControl.getBoolean(false)) {
       for (Map.Entry<String, NetworkTableEntry> entry : entriesSetMotorVelocity.entrySet()) {
-          neos.get(entry.getKey()).setVelocity(entry.getValue().getDouble(0));
+        neos.get(entry.getKey()).setVelocity(entry.getValue().getDouble(0));
       }
-    } 
-    if (enableWheelVelocityControl.getBoolean(false)) {
-      for (Map.Entry<String, NetworkTableEntry> entry : entriesSetWheelVelocity.entrySet()) {
-          modules.get(entry.getKey()).setWheelVelocity(entry.getValue().getDouble(0));
+    }
+    if (enableWheelSpeedControl.getBoolean(false)) {
+      for (Map.Entry<String, NetworkTableEntry> entry : entriesSetWheelSpeed.entrySet()) {
+        modules.get(entry.getKey()).setWheelSpeed(entry.getValue().getDouble(0));
       }
-    } 
+    }
     if (enableAzimuthVelocityControl.getBoolean(false)) {
       for (Map.Entry<String, NetworkTableEntry> entry : entriesSetAzimuthVelocity.entrySet()) {
-          modules.get(entry.getKey()).setAzimuthVelocity(entry.getValue().getDouble(0));
+        modules.get(entry.getKey()).setAzimuthVelocity(entry.getValue().getDouble(0));
       }
     }
     if (enableAzimuthPositionControl.getBoolean(false)) {
       for (Map.Entry<String, NetworkTableEntry> entry : entriesSetAzimuthPosition.entrySet()) {
-          modules.get(entry.getKey()).setAzimuthPosition(entry.getValue().getDouble(0));
+        modules.get(entry.getKey()).setAzimuthPosition(new WrappedAngle(entry.getValue().getDouble(0)));
       }
     }
   }
