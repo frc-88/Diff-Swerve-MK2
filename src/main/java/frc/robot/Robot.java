@@ -136,6 +136,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotPeriodic() {
+    if (gamepad.getRawButton(7)) {
+      // OOOOOOOH, I WONDER WHAT THIS DOES!
+      int infiniteTJSquareds = 88 / 0;
+      throw new IllegalStateException(
+          infiniteTJSquareds + " is too much awesome, I don't know how we didn't crash already!");
+    }
+
     Constants.update();
     SmartDashboard.putNumber("Yaw", navx.getYaw());
   }
