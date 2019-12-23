@@ -178,13 +178,20 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     // Check robot-centric mode
-    if (gamepad.getRawButton(5)) {
+    if (gamepad.getRawButton(1)) {
       chassis.setRobotCentic();
     }
 
     // Check field-centric mode
-    if (gamepad.getRawButton(6)) {
+    if (gamepad.getRawButton(2)) {
       chassis.setFieldCentic();
+    }
+
+    // Check hammer mode
+    if (gamepad.getRawButton(5)) {
+      chassis.enableHammerMode();
+    } else {
+      chassis.disableHammerMode();
     }
 
     // Check if the translation angle should be updated
