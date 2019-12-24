@@ -10,10 +10,8 @@ package frc.robot;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.revrobotics.ControlType;
 import com.revrobotics.CANSparkMax.IdleMode;
 
-import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.I2C.Port;
@@ -28,7 +26,6 @@ import frc.team88.swerve.util.WrappedAngle;
 import frc.team88.swerve.util.constants.Constants;
 import frc.team88.swerve.util.constants.PIDPreferenceConstants;
 import frc.team88.swerve.wrappers.gyro.NavX;
-import jdk.jfr.Enabled;
 
 public class Robot extends TimedRobot {
 
@@ -183,7 +180,7 @@ public class Robot extends TimedRobot {
     }
 
     // Check field-centric mode
-    if (gamepad.getRawButton(2)) {
+    if (gamepad.getRawButton(4)) {
       chassis.setFieldCentic();
     }
 
@@ -229,6 +226,21 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
+    PIDNeo pos = neos.get("br+");
+    PIDNeo neg = neos.get("br-");
+
+    if (gamepad.getRawButton(3)) {
+      pos.calibratePosition(0);
+      neg.calibratePosition(0);
+    }
+
+    SmartDashboard.putNumber("+ rot", pos.getPosition());
+    SmartDashboard.putNumber("- rot", neg.getPosition());
+
+    if (Math.abs(gamepad.getRawAxis(0)) > .15) pos.set(gamepad.getRawAxis(0) * 0.1);
+    else pos.set(0);
+    if (Math.abs(gamepad.getRawAxis(4)) > .15) neg.set(gamepad.getRawAxis(4) * 0.1);
+    else neg.set (0);
   }
 
   private void enableCalibrateMode() {
