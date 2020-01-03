@@ -25,6 +25,8 @@ import frc.team88.swerve.swervemodule.SwerveModule;
 import frc.team88.swerve.swervemodule.motorsensor.PIDMotor;
 import frc.team88.swerve.swervemodule.motorsensor.PIDNeo;
 import frc.team88.swerve.swervemodule.motorsensor.PIDTransmission;
+import frc.team88.swerve.swervemodule.motorsensor.PositionVelocitySensor;
+import frc.team88.swerve.swervemodule.motorsensor.SensorTransmission;
 import frc.team88.swerve.swervemodule.motorsensor.CANifiedPWMEncoder;
 import frc.team88.swerve.util.Vector2D;
 import frc.team88.swerve.util.WrappedAngle;
@@ -38,7 +40,7 @@ public class Robot extends TimedRobot {
 
     private HashMap<String, PIDNeo> neos;
     private HashMap<String, PIDMotor> outputs;
-    private HashMap<String, CANifiedPWMEncoder> azimuthEncoders;
+    private HashMap<String, PositionVelocitySensor> azimuthEncoders;
     private HashMap<String, SwerveModule> modules;
     private NavX navx;
     private SwerveChassis chassis;
@@ -86,21 +88,17 @@ public class Robot extends TimedRobot {
 
         // Create the differential/planetary
         MotorCombiner flCombiner = new MotorCombiner.Builder(2)
-                .addInput(neos.get("fl+"), 0.0183431952662722, 0.0535612535612536)
-                .addInput(neos.get("fl-"), 0.0183431952662722, -0.0668091168091168)
-                .build();
+                .addInput(neos.get("fl+"), 0.0183431952662722, 0.0668091168091168)
+                .addInput(neos.get("fl-"), 0.0183431952662722, -0.0535612535612536).build();
         MotorCombiner blCombiner = new MotorCombiner.Builder(2)
-                .addInput(neos.get("bl+"), 0.0183431952662722, 0.0535612535612536)
-                .addInput(neos.get("bl-"), 0.0183431952662722, -0.0668091168091168)
-                .build();
+                .addInput(neos.get("bl+"), 0.0183431952662722, 0.0668091168091168)
+                .addInput(neos.get("bl-"), 0.0183431952662722, -0.0535612535612536).build();
         MotorCombiner brCombiner = new MotorCombiner.Builder(2)
-                .addInput(neos.get("br+"), 0.0183431952662722, 0.0535612535612536)
-                .addInput(neos.get("br-"), 0.0183431952662722, -0.0668091168091168)
-                .build();
+                .addInput(neos.get("br+"), 0.0183431952662722, 0.0668091168091168)
+                .addInput(neos.get("br-"), 0.0183431952662722, -0.0535612535612536).build();
         MotorCombiner frCombiner = new MotorCombiner.Builder(2)
-                .addInput(neos.get("fr+"), 0.0183431952662722, 0.0535612535612536)
-                .addInput(neos.get("fr-"), 0.0183431952662722, -0.0668091168091168)
-                .build();
+                .addInput(neos.get("fr+"), 0.0183431952662722, 0.0668091168091168)
+                .addInput(neos.get("fr-"), 0.0183431952662722, -0.0535612535612536).build();
 
         // Create the transmissions
         outputs = new HashMap<>();
@@ -116,14 +114,22 @@ public class Robot extends TimedRobot {
         // Create the absolute encoders
         canifier = new CANifier(21);
         azimuthEncoders = new HashMap<>();
-        azimuthEncoders.put("FL", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel0,
-                outputs.get("FL Azimuth")::getVelocity, new DoublePreferenceConstant("FL Az Enc", 0)));
-        azimuthEncoders.put("BL", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel1,
-                outputs.get("BL Azimuth")::getVelocity, new DoublePreferenceConstant("BL Az Enc", 0)));
-        azimuthEncoders.put("BR", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel2,
-                outputs.get("BR Azimuth")::getVelocity, new DoublePreferenceConstant("BR Az Enc", 0)));
-        azimuthEncoders.put("FR", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel3,
-                outputs.get("FR Azimuth")::getVelocity, new DoublePreferenceConstant("FR Az Enc", 0)));
+        azimuthEncoders.put("FL",
+                new SensorTransmission(new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel0,
+                        outputs.get("FL Azimuth")::getVelocity, new DoublePreferenceConstant("FL Az Enc", 0)),
+                        AZIMUTH_GEAR_RATIO));
+        azimuthEncoders.put("BL",
+                new SensorTransmission(new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel1,
+                        outputs.get("BL Azimuth")::getVelocity, new DoublePreferenceConstant("BL Az Enc", 0)),
+                        -AZIMUTH_GEAR_RATIO));
+        azimuthEncoders.put("BR",
+                new SensorTransmission(new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel2,
+                        outputs.get("BR Azimuth")::getVelocity, new DoublePreferenceConstant("BR Az Enc", 0)),
+                        AZIMUTH_GEAR_RATIO));
+        azimuthEncoders.put("FR",
+                new SensorTransmission(new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel3,
+                        outputs.get("FR Azimuth")::getVelocity, new DoublePreferenceConstant("FR Az Enc", 0)),
+                        -AZIMUTH_GEAR_RATIO));
 
         // Create the modules
         modules = new HashMap<>();
@@ -147,7 +153,8 @@ public class Robot extends TimedRobot {
         navx.calibrateYaw(0);
 
         // Create the chassis
-        chassis = new SwerveChassis(navx, 50, modules.get("FL"), /*modules.get("BL"),*/ modules.get("BR"), modules.get("FR"));
+        chassis = new SwerveChassis(navx, 50, modules.get("FL"), modules.get("BL"), modules.get("BR"),
+                modules.get("FR"));
         chassis.setMaxWheelSpeed(MAX_SPEED);
 
         // Create the gamepad
@@ -235,13 +242,14 @@ public class Robot extends TimedRobot {
         }
 
         // Set the translation velocity vector
-        targetState = targetState.changeTranslationVelocity(Vector2D.createPolarCoordinates(translationSpeed, this.translationAngle));
+        targetState = targetState
+                .changeTranslationVelocity(Vector2D.createPolarCoordinates(translationSpeed, this.translationAngle));
 
         // Set the rotation velocity
         if (Math.abs(gamepad.getRawAxis(4)) > 0.1) {
-            targetState.changeRotationVelocity(-(gamepad.getRawAxis(4) * 0.9 + 0.1) * MAX_ROTATION);
+            targetState = targetState.changeRotationVelocity(-(gamepad.getRawAxis(4) * 0.9 + 0.1) * MAX_ROTATION);
         } else {
-            targetState.changeRotationVelocity(0);
+            targetState = targetState.changeRotationVelocity(0);
         }
 
         // Set the target state
@@ -269,21 +277,21 @@ public class Robot extends TimedRobot {
         // PIDNeo neg = neos.get("br-");
 
         // if (gamepad.getRawButton(3)) {
-        //     pos.calibratePosition(0);
-        //     neg.calibratePosition(0);
+        // pos.calibratePosition(0);
+        // neg.calibratePosition(0);
         // }
 
         // SmartDashboard.putNumber("+ rot", pos.getPosition());
         // SmartDashboard.putNumber("- rot", neg.getPosition());
 
         // if (Math.abs(gamepad.getRawAxis(0)) > .15)
-        //     pos.set(gamepad.getRawAxis(0) * 0.1);
+        // pos.set(gamepad.getRawAxis(0) * 0.1);
         // else
-        //     pos.set(0);
+        // pos.set(0);
         // if (Math.abs(gamepad.getRawAxis(4)) > .15)
-        //     neg.set(gamepad.getRawAxis(4) * 0.1);
+        // neg.set(gamepad.getRawAxis(4) * 0.1);
         // else
-        //     neg.set(0);
+        // neg.set(0);
     }
 
     private void enableCalibrateMode() {

@@ -9,5 +9,7 @@
     "bin/": true,
     ".classpath": true,
     ".project": true
-  }
+  },
+  "java.format.settings.url": "SwerveLibrary/eclipse-formatter.xml",
+  "java.format.settings.profile": "SwerveLibrary/eclipse-formatter.xml"
 }
