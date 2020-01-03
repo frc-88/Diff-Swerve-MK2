@@ -49,8 +49,8 @@ public class Robot extends TimedRobot {
     private PIDPreferenceConstants motorSpeedPIDConstants;
     private PIDPreferenceConstants azimuthPositionPIDConstants;
 
-    private static final double AZIMUTH_GEAR_RATIO = 27.296 / 360.;
-    private static final double WHEEL_GEAR_RATIO = 8.31 / ((1. / 3.) * Math.PI);
+    private static final double AZIMUTH_GEAR_RATIO = 1. / 360.;
+    private static final double WHEEL_GEAR_RATIO = 1. / ((1. / 3.) * Math.PI);
 
     private static final double WIDTH = 24.75 / 12.;
     private static final double LENGTH = 21.75 / 12.;
@@ -104,37 +104,37 @@ public class Robot extends TimedRobot {
 
         // Create the transmissions
         outputs = new HashMap<>();
-        outputs.put("FL Azimuth", flCombiner.getOutput(0));
-        outputs.put("FL Wheel", flCombiner.getOutput(0));
-        outputs.put("BL Azimuth", blCombiner.getOutput(0));
-        outputs.put("BL Wheel", blCombiner.getOutput(0));
-        outputs.put("BR Azimuth", brCombiner.getOutput(0));
-        outputs.put("BR Wheel", brCombiner.getOutput(0));
-        outputs.put("FR Azimuth", frCombiner.getOutput(0));
-        outputs.put("FR Wheel", frCombiner.getOutput(0));
+        outputs.put("FL Azimuth", new PIDTransmission(flCombiner.getOutput(0), AZIMUTH_GEAR_RATIO));
+        outputs.put("FL Wheel", new PIDTransmission(flCombiner.getOutput(1), WHEEL_GEAR_RATIO));
+        outputs.put("BL Azimuth", new PIDTransmission(blCombiner.getOutput(0), AZIMUTH_GEAR_RATIO));
+        outputs.put("BL Wheel", new PIDTransmission(blCombiner.getOutput(1), WHEEL_GEAR_RATIO));
+        outputs.put("BR Azimuth", new PIDTransmission(brCombiner.getOutput(0), AZIMUTH_GEAR_RATIO));
+        outputs.put("BR Wheel", new PIDTransmission(brCombiner.getOutput(1), WHEEL_GEAR_RATIO));
+        outputs.put("FR Azimuth", new PIDTransmission(frCombiner.getOutput(0), AZIMUTH_GEAR_RATIO));
+        outputs.put("FR Wheel", new PIDTransmission(frCombiner.getOutput(1), WHEEL_GEAR_RATIO));
 
         // Create the absolute encoders
         canifier = new CANifier(21);
         azimuthEncoders = new HashMap<>();
-        azimuthEncoders.put("FL", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel1,
+        azimuthEncoders.put("FL", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel0,
                 outputs.get("FL Azimuth")::getVelocity, new DoublePreferenceConstant("FL Az Enc", 0)));
-        azimuthEncoders.put("BL", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel2,
+        azimuthEncoders.put("BL", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel1,
                 outputs.get("BL Azimuth")::getVelocity, new DoublePreferenceConstant("BL Az Enc", 0)));
-        azimuthEncoders.put("BR", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel3,
+        azimuthEncoders.put("BR", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel2,
                 outputs.get("BR Azimuth")::getVelocity, new DoublePreferenceConstant("BR Az Enc", 0)));
-        azimuthEncoders.put("FR", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel0,
+        azimuthEncoders.put("FR", new CANifiedPWMEncoder(canifier, PWMChannel.PWMChannel3,
                 outputs.get("FR Azimuth")::getVelocity, new DoublePreferenceConstant("FR Az Enc", 0)));
 
         // Create the modules
         modules = new HashMap<>();
         modules.put("FL", new SwerveModule(outputs.get("FL Wheel"), outputs.get("FL Azimuth"),
-                outputs.get("FL Azimuth"), azimuthPositionPIDConstants));
+                azimuthEncoders.get("FL"), azimuthPositionPIDConstants));
         modules.put("BL", new SwerveModule(outputs.get("BL Wheel"), outputs.get("BL Azimuth"),
-                outputs.get("BL Azimuth"), azimuthPositionPIDConstants));
+                azimuthEncoders.get("BL"), azimuthPositionPIDConstants));
         modules.put("BR", new SwerveModule(outputs.get("BR Wheel"), outputs.get("BR Azimuth"),
-                outputs.get("BR Azimuth"), azimuthPositionPIDConstants));
+                azimuthEncoders.get("BR"), azimuthPositionPIDConstants));
         modules.put("FR", new SwerveModule(outputs.get("FR Wheel"), outputs.get("FR Azimuth"),
-                outputs.get("FR Azimuth"), azimuthPositionPIDConstants));
+                azimuthEncoders.get("FR"), azimuthPositionPIDConstants));
 
         // Set the module locations
         modules.get("FL").setLocation(Vector2D.createCartesianCoordinates(-WIDTH / 2, LENGTH / 2));
@@ -147,7 +147,7 @@ public class Robot extends TimedRobot {
         navx.calibrateYaw(0);
 
         // Create the chassis
-        chassis = new SwerveChassis(navx, 50, modules.get("FL"), modules.get("BL"), modules.get("BR"), modules.get("FR"));
+        chassis = new SwerveChassis(navx, 50, modules.get("FL"), /*modules.get("BL"),*/ modules.get("BR"), modules.get("FR"));
         chassis.setMaxWheelSpeed(MAX_SPEED);
 
         // Create the gamepad
@@ -165,6 +165,10 @@ public class Robot extends TimedRobot {
 
         Constants.update();
         SmartDashboard.putNumber("Yaw", navx.getYaw());
+        SmartDashboard.putNumber("FL Azimuth", azimuthEncoders.get("FL").getPosition());
+        SmartDashboard.putNumber("BL Azimuth", azimuthEncoders.get("BL").getPosition());
+        SmartDashboard.putNumber("BR Azimuth", azimuthEncoders.get("BR").getPosition());
+        SmartDashboard.putNumber("FR Azimuth", azimuthEncoders.get("FR").getPosition());
     }
 
     @Override
@@ -231,7 +235,7 @@ public class Robot extends TimedRobot {
         }
 
         // Set the translation velocity vector
-        targetState.changeTranslationVelocity(Vector2D.createPolarCoordinates(translationSpeed, this.translationAngle));
+        targetState = targetState.changeTranslationVelocity(Vector2D.createPolarCoordinates(translationSpeed, this.translationAngle));
 
         // Set the rotation velocity
         if (Math.abs(gamepad.getRawAxis(4)) > 0.1) {
